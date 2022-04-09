@@ -1,0 +1,281 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <script>
+            window.field = null;
+
+            $(document).ready(function() {
+                
+                initField();
+
+                $('#btn_next').click(function() {
+                    printField(); // 2번째 호출부터 필드청소 한번 해야되는것때문에 어쩔수없이 해야됨.
+
+                    /// 각 라인별로 기입할 남은숫자들 합산
+
+                    var limit_nums_x = [[],[],[], [],[],[], [],[],[]];
+                    for( var i=0; i<9; i++ ) {
+                        var tmp = {1:null,2:null,3:null,4:null,5:null,6:null,7:null,8:null,9:null};
+                        for( var j=0; j<9; j++ ) {
+                            if( window.field[j][i] != 0 ) {
+                                delete tmp[window.field[j][i]];
+                            }
+                        }
+                        for( var n in tmp ) {
+                            limit_nums_x[i].push(n);
+                        }
+                    }
+                    //console.log(limit_nums_x);
+
+                    var limit_nums_y = [[],[],[], [],[],[], [],[],[]]; // row 단위
+                    for( var j=0; j<9; j++ ) {
+                        var tmp = {1:null,2:null,3:null,4:null,5:null,6:null,7:null,8:null,9:null};
+                        for( var i=0; i<9; i++ ) {
+                            if( window.field[j][i] != 0 ) {
+                                delete tmp[window.field[j][i]];
+                            }
+                        }
+                        for( var n in tmp ) {
+                            limit_nums_y[j].push(n);
+                        }
+                    }
+                    //console.log(limit_nums_y);
+
+                    /// 각 셀별로 기입할 남은숫자들 합산. / 1차 - limit_nums_y AND limit_nums_x
+
+                    var possable_nums = [
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined],
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined],
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined],
+
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined],
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined],
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined],
+
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined],
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined],
+                        [undefined,undefined,undefined, undefined,undefined,undefined, undefined,undefined,undefined]
+                    ];
+
+                    for( var x=0; x<9; x++ ) {
+                        for( var y=0; y<9; y++ ) {
+                            if( window.field[y][x] == 0 ) {
+                                var tmp = [];
+                                for( var i=0; i<limit_nums_x[x].length; i++ ) {
+                                    if( limit_nums_y[y].indexOf(limit_nums_x[x][i]) >= 0 ) { // limit_nums_x,limit_nums_y 겹치는수 찾음.
+                                        tmp.push(limit_nums_x[x][i]);
+                                    }
+                                }
+                                possable_nums[y][x] = tmp;
+                            }
+                        }
+                    }
+                    //console.log(possable_nums);
+
+                    /// 각 셀별로 기입할 남은숫자들 합산. / 2차 - 각 셀안의 3x3칸 내의 유효한 숫자 아닌것들 삭제.
+                    
+                    for( var y=0; y<9; y++ ) {
+                        for( var x=0; x<9; x++ ) {
+                            if( possable_nums[y][x] ) {
+                                var chunk_pos = {
+                                    x:3*Math.floor(x/3),
+                                    y:3*Math.floor(y/3)
+                                };
+                                var tmp = [];
+                                for( var chunk_y=0; chunk_y<3; chunk_y++ ) {
+                                    for( var chunk_x=0; chunk_x<3; chunk_x++ ) {
+                                        var n = window.field[chunk_pos.y+chunk_y][chunk_pos.x+chunk_x]+'';
+                                        if( n!=0 ) {
+                                            tmp.push(n);
+                                        }
+                                    }
+                                }
+                                //console.log(tmp);
+                                var tmp2 = [];
+                                for( var i=0; i<possable_nums[y][x].length; i++ ) {
+                                    if( tmp.indexOf(possable_nums[y][x][i]) < 0 ) {
+                                        tmp2.push(possable_nums[y][x][i]);
+                                    }
+                                }
+                                possable_nums[y][x] = tmp2;
+                                //console.log(possable_nums[y][x]);
+                            }
+                        }
+                    }
+                    //console.log(possable_nums);
+
+                    /// possable_nums 필드에 섞어서 출력
+
+                    for( var y=0; y<9; y++ ) {
+                        for( var x=0; x<9; x++ ) {
+                            if( possable_nums[y][x] ) {
+                                var span = $(document.createElement('span')).text(possable_nums[y][x].join('')).css('color','red');
+                                $('#field tbody').find('tr').eq(y).find('td').eq(x).append(span);
+                                if( possable_nums[y][x].length == 1 ) { // 가능성있는 번호가 1개밖에 없어서 이 번호가 맞을 확률이 100%일때
+                                    field[y][x] = possable_nums[y][x][0];
+                                }
+                            }
+                        }
+                    }    
+                });
+                
+                
+
+            });
+
+            function initField()
+            {
+                window.field = [
+                    [5,3,0, 0,7,0, 0,0,0],
+                    [6,0,0, 1,9,5, 0,0,0],
+                    [0,9,8, 0,0,0, 0,6,0],
+
+                    [8,0,0, 0,6,0, 0,0,3],
+                    [4,0,0, 8,0,3, 0,0,1],
+                    [7,0,0, 0,2,0, 0,0,6],
+
+                    [0,6,0, 0,0,0, 2,8,0],
+                    [0,0,0, 4,1,9, 0,0,5],
+                    [0,0,0, 0,8,0, 0,7,9]
+                ];
+                window.field = [
+                    [1,0,0, 3,0,9, 0,0,5],
+                    [0,0,7, 2,6,5, 9,0,0],
+                    [0,9,5, 0,0,0, 3,6,0],
+
+                    [9,3,0, 1,0,4, 0,5,7],
+                    [0,4,0, 0,3,0, 0,8,0],
+                    [5,2,0, 7,0,8, 0,3,1],
+
+                    [0,5,9, 0,0,0, 1,4,0],
+                    [0,0,2, 9,5,3, 8,0,0],
+                    [8,0,0, 6,0,1, 0,0,2]
+                ];
+                /*
+                window.field = [
+                    [8,0,0, 0,0,0, 0,0,0],
+                    [0,0,3, 6,0,0, 0,0,0],
+                    [0,7,0, 0,9,0, 2,0,0],
+                        
+                    [0,5,0, 0,0,7, 0,0,0],
+                    [0,0,0, 0,4,5, 7,0,0],
+                    [0,0,0, 1,0,0, 0,3,0],
+                        
+                    [0,0,1, 0,0,0, 0,6,8],
+                    [0,0,8, 5,0,0, 0,1,0],
+                    [0,9,0, 0,0,0, 4,0,0]
+                ]; // TODO 이 프로그램으로 풀수없는 문제라는건 알겠는데, 이게 어떻게든 풀 수 있는문제인지 아닌지는 모름.
+                */
+
+                /// 3x3칸 3x3블럭으로 표기하기 위해, 필드에 굵은선 그리기
+
+                $('#field tbody tr:nth-child(3) td').css('border-bottom','2px solid black');
+                $('#field tbody tr:nth-child(4) td').css('border-top','2px solid black');
+
+                $('#field tbody tr:nth-child(6) td').css('border-bottom','2px solid black');
+                $('#field tbody tr:nth-child(7) td').css('border-top','2px solid black');
+
+                $('#field tbody tr td:nth-child(3)').css('border-right','2px solid black');
+                $('#field tbody tr td:nth-child(4)').css('border-left','2px solid black');
+
+                $('#field tbody tr td:nth-child(6)').css('border-right','2px solid black');
+                $('#field tbody tr td:nth-child(7)').css('border-left','2px solid black');
+
+                /// 사전 정의된 숫자 기입
+
+                printField();
+            }
+
+            function printField()
+            {
+                /// td값 청소
+
+                $('#field tbody td').html('');
+
+                /// 사전 정의된 숫자 기입
+
+                for( var j=0; j<field.length; j++ ) {
+                    for( var i=0; i<field[j].length; i++ ) {
+                        var v = field[j][i] ? field[j][i] : '';
+                        $('#field tbody').find('tr').eq(j).find('td').eq(i).text(v);
+                    }
+                }
+            }
+        </script>
+        <style>
+            #field {
+                border-spacing: 0;
+            }
+
+            #field tr td {
+                width: 64px;
+                height: 64px;
+                border: 1px solid black;
+                text-align: center;
+                font-size: 20px;
+            }
+
+            #btn_next {
+                width: 60px;
+                height: 60px;
+                font-size: 40px;
+            }
+        </style>
+    </head>
+    <body>
+        <button id="btn_next">▶</button>
+        <hr>
+        <table id="field">
+            <tbody>
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+                
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+                
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                    <td></td><td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>
